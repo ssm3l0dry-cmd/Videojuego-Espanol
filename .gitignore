@@ -9,3 +9,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Claude Code working file
+CLAUDE.md
+
+# Unrelated archives
+*.zip

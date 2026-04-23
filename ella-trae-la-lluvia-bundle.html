@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ella Trae la Lluvia</title>
+<style>
+/* ════════════════════════════════════════
+   SHARED BASE STYLES
+════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #040e1a;
+  color: #e0eeff;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+body.story-active {
+  overflow-y: auto;
+}
+
+/* Ocean background */
+.ocean-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, #040a18 0%, #06162b 40%, #071d38 70%, #041020 100%);
+  overflow: hidden;
+}
+
+/* Waves */
+.wave {
+  position: absolute;
+  bottom: 0;
+  left: -100%;
+  width: 300%;
+  border-radius: 43% 57% 56% 44% / 50% 50% 50% 50%;
+  animation: waveMove linear infinite;
+}
+.wave1 { height: 220px; background: rgba(10,40,80,0.55);  animation-duration: 12s; bottom: -60px; }
+.wave2 { height: 180px; background: rgba(5,25,60,0.45);   animation-duration: 16s; animation-delay: -4s; bottom: -40px; }
+.wave3 { height: 140px; background: rgba(15,50,90,0.35);  animation-duration: 10s; animation-delay: -2s; bottom: -20px; }
+
+@keyframes waveMove {
+  0%   { transform: translateX(0)   scaleY(1);    }
+  50%  { transform: translateX(25%) scaleY(1.05); }
+  100% { transform: translateX(50%) scaleY(1);    }
+}
+
+/* Rain */
+.rain-container { position: absolute; inset: 0; pointer-events: none; }
+.raindrop {
+  position: absolute;
+  width: 1.5px;
+  background: linear-gradient(to bottom, transparent, rgba(130,180,220,0.6));
+  border-radius: 2px;
+  animation: fall linear infinite;
+}
+@keyframes fall {
+  0%   { transform: translateY(-100px) rotate(10deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateY(110vh) rotate(10deg); opacity: 0; }
+}
+
+/* Sidebar (shared) */
+.sidebar, .story-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 220px;
+  flex-shrink: 0;
+  padding: 40px 24px;
+  background: rgba(4,14,26,0.72);
+  backdrop-filter: blur(8px);
+  border-right: 1px solid rgba(100,160,230,0.15);
+  min-height: 100vh;
+  transition: transform 0.4s cubic-bezier(0.4,0,0.2,1),
+              width    0.4s cubic-bezier(0.4,0,0.2,1);
+  overflow: hidden;
+}
+.story-sidebar { width: 240px; padding: 40px 28px; gap: 22px; }
+
+.sidebar.collapsed,
+.story-sidebar.collapsed {
+  transform: translateX(-100%);
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Sidebar toggle arrow */
+.sidebar-toggle {
+  position: fixed;
+  left: 220px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  background: rgba(10,30,60,0.85);
+  border: 1px solid rgba(100,160,230,0.35);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  color: #7bb8f5;
+  width: 28px;
+  height: 56px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 0.4s cubic-bezier(0.4,0,0.2,1), background 0.15s, color 0.15s;
+  padding: 0;
+}
+.sidebar-toggle:hover { background: rgba(20,60,110,0.95); color: #d6eaff; }
+.sidebar-toggle.sidebar-closed { left: 0; }
+.toggle-icon { width: 18px; height: 18px; transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); }
+.toggle-icon.rotated { transform: rotate(180deg); }
+
+/* Game title */
+.game-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #d6eaff;
+  text-shadow: 0 0 18px rgba(80,160,255,0.6);
+  line-height: 1.3;
+  letter-spacing: 1px;
+}
+
+/* Button group */
+.btn-group { display: flex; flex-direction: column; gap: 12px; }
+
+/* Sidebar buttons */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.15s, filter 0.15s;
+  text-transform: uppercase;
+}
+.btn:hover  { transform: translateY(-2px) scale(1.03); filter: brightness(1.15); }
+.btn:active { transform: translateY(1px)  scale(0.97); filter: brightness(0.9);  }
+.btn-play      { background: #1a8c4e; color: #e8fff2; box-shadow: 0 4px 16px rgba(26,140,78,0.5); }
+.btn-stop      { background: #c0392b; color: #fff0ee; box-shadow: 0 4px 16px rgba(192,57,43,0.5); }
+.btn-inventory { background: #8e44ad; color: #f5eeff; box-shadow: 0 4px 16px rgba(142,68,173,0.5); }
+.btn-saves     { background: #d97b10; color: #fff8ee; box-shadow: 0 4px 16px rgba(217,123,16,0.5); }
+.btn-restart   { background: #2471a3; color: #eaf4ff; box-shadow: 0 4px 16px rgba(36,113,163,0.5); }
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #0d1f35;
+  border: 1.5px solid rgba(100,160,230,0.3);
+  border-radius: 14px;
+  padding: 36px;
+  min-width: 320px;
+  max-width: 520px;
+  width: 90%;
+  position: relative;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  color: #cce0ff;
+}
+.modal-close {
+  position: absolute;
+  top: 12px; right: 16px;
+  background: none;
+  border: none;
+  color: #7bb8f5;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.modal-close:hover { color: #fff; }
+.modal-content h2  { margin-bottom: 14px; color: #d6eaff; }
+.modal-content p   { margin-bottom: 10px; line-height: 1.6; font-size: 0.93rem; }
+.modal-content ul  { padding-left: 18px; line-height: 1.9; font-size: 0.9rem; }
+
+/* Save slots */
+.save-slots { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.save-slot {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(100,160,230,0.25);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+}
+.save-slot .slot-actions { display: flex; gap: 8px; }
+.save-slot button {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  transition: filter 0.15s;
+}
+.save-slot button:hover { filter: brightness(1.2); }
+.btn-save-load { background: #1a8c4e; color: #fff; }
+.btn-save-del  { background: #c0392b; color: #fff; }
+
+/* Inventory grid */
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+.inv-slot {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(100,160,230,0.2);
+  border-radius: 8px;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  gap: 4px;
+  cursor: default;
+  transition: background 0.15s;
+}
+.inv-slot:hover { background: rgba(100,160,230,0.12); }
+.inv-slot span  { font-size: 0.65rem; color: #7bb8f5; letter-spacing: 0.5px; text-transform: uppercase; }
+.inv-empty      { opacity: 0.3; }
+
+/* Page transition overlay */
+#pageTransition {
+  position: fixed;
+  inset: 0;
+  background: #040e1a;
+  z-index: 200;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════
+   INDEX PAGE STYLES
+════════════════════════════════════════ */
+.layout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 40px 50px 40px 0;
+}
+
+.main-frame {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px;
+}
+
+.cover-frame {
+  border: 2.5px solid rgba(255,255,255,0.25);
+  border-radius: 18px;
+  overflow: hidden;
+  width: min(680px, 100%);
+  aspect-ratio: 1 / 0.9;
+  box-shadow: 0 0 40px rgba(100,170,255,0.15), 0 8px 32px rgba(0,0,0,0.6);
+  background: #040e1a;
+}
+.cover-art {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.cover-title {
+  position: absolute;
+  top: 18px; left: 22px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.6rem;
+  font-weight: 900;
+  font-style: italic;
+  color: #e8f4ff;
+  line-height: 1.2;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.9), 0 0 30px rgba(60,130,220,0.5);
+  pointer-events: none;
+  user-select: none;
+}
+.cover-svg { width: 100%; height: 100%; display: block; }
+
+.bottom-nav { display: flex; gap: 20px; }
+.nav-btn {
+  background: rgba(10,25,55,0.75);
+  border: 2px solid rgba(120,180,255,0.45);
+  border-radius: 8px;
+  color: #d6eaff;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 1.5px;
+  padding: 10px 32px;
+  cursor: pointer;
+  text-shadow: 0 0 12px rgba(100,170,255,0.7);
+  box-shadow: 0 0 14px rgba(60,130,220,0.25), inset 0 1px 0 rgba(255,255,255,0.07);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.12s;
+  backdrop-filter: blur(4px);
+}
+.nav-btn:hover {
+  background: rgba(20,50,100,0.9);
+  border-color: rgba(160,210,255,0.75);
+  color: #fff;
+  box-shadow: 0 0 22px rgba(80,160,255,0.5);
+  transform: translateY(-2px);
+}
+.nav-btn:active { transform: translateY(1px); filter: brightness(0.9); }
+
+/* ════════════════════════════════════════
+   STORY PAGE STYLES
+════════════════════════════════════════ */
+.story-layout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+}
+
+.story-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 80px 80px 60px 60px;
+  max-width: 860px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+.chapter-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #5a9fd4;
+  margin-bottom: 36px;
+}
+
+.story-text { display: flex; flex-direction: column; gap: 28px; }
+
+.story-line {
+  font-size: 1.12rem;
+  line-height: 1.85;
+  color: #cfe4ff;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+.story-line.highlight { color: #7bb8f5; font-style: italic; }
+
+.story-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 56px;
+}
+
+.story-btn {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: transform 0.12s, filter 0.15s, box-shadow 0.15s;
+}
+.story-btn:hover  { transform: translateY(-2px); filter: brightness(1.15); }
+.story-btn:active { transform: translateY(1px);  filter: brightness(0.9);  }
+
+.story-btn-back {
+  background: rgba(255,255,255,0.08);
+  color: #8ab4d4;
+  border: 1px solid rgba(100,160,230,0.25);
+}
+.story-btn-back:hover { background: rgba(255,255,255,0.13); color: #d6eaff; }
+
+.story-btn-next {
+  background: #1a8c4e;
+  color: #e8fff2;
+  box-shadow: 0 4px 18px rgba(26,140,78,0.45);
+}
+
+.story-btn-choice {
+  background: rgba(20,60,110,0.75);
+  color: #c8e0ff;
+  border: 1px solid rgba(100,160,230,0.45);
+  box-shadow: 0 3px 14px rgba(0,80,180,0.25);
+}
+.story-btn-choice:hover {
+  background: rgba(30,80,150,0.92);
+  color: #fff;
+  border-color: rgba(140,190,255,0.7);
+  box-shadow: 0 5px 20px rgba(0,100,220,0.4);
+}
+
+/* Outcome badges */
+.outcome-badge {
+  width: 100%;
+  padding: 16px 22px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.outcome-badge strong { font-size: 0.82rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.outcome-badge span   { font-size: 0.95rem; line-height: 1.6; font-family: Georgia, serif; }
+
+.outcome-good    { background: rgba(20,90,50,0.55);   border: 1px solid rgba(60,180,100,0.5);   color: #a8f0c0; }
+.outcome-neutral { background: rgba(20,50,90,0.55);   border: 1px solid rgba(80,140,220,0.45);  color: #a8ccf0; }
+.outcome-bad     { background: rgba(90,20,20,0.55);   border: 1px solid rgba(200,60,60,0.45);   color: #f0a8a8; }
+
+/* Story page needs scrolling */
+.story-page body { overflow-y: auto; }
+
+/* Line reveal animation — CSS only, GSAP-free */
+.line-hidden {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.line-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     OCEAN BACKGROUND (shared)
+════════════════════════════════════════ -->
+<div class="ocean-bg">
+  <div class="wave wave1"></div>
+  <div class="wave wave2"></div>
+  <div class="wave wave3"></div>
+  <div class="rain-container" id="rainContainer"></div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE TRANSITION OVERLAY
+════════════════════════════════════════ -->
+<div id="pageTransition" style="opacity:1;"></div>
+
+<!-- ════════════════════════════════════════
+     INDEX PAGE
+════════════════════════════════════════ -->
+<div id="indexPage">
+
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="mainSidebar">
+      <nav class="btn-group">
+        <button class="btn btn-play"      onclick="playMusic()">&#9654; PLAY MUSIC</button>
+        <button class="btn btn-stop"      onclick="stopMusic()">&#9646;&#9646; STOP MUSIC</button>
+        <button class="btn btn-inventory" onclick="openInventory()">&#128184; INVENTORY</button>
+        <button class="btn btn-saves"     onclick="openSaves()">&#128190; SAVES</button>
+        <button class="btn btn-restart"   onclick="restartGame()">&#8635; RESTART</button>
+      </nav>
+    </aside>
+
+    <!-- Sidebar toggle -->
+    <button class="sidebar-toggle" id="mainSidebarToggle" onclick="toggleMainSidebar()" aria-label="Toggle sidebar">
+      <svg class="toggle-icon" id="mainToggleIcon" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+
+    <!-- Main cover frame -->
+    <main class="main-frame">
+      <div class="cover-frame">
+        <div class="cover-art">
+          <!-- SVG cover illustration: girl in a boat on rainy ocean -->
+          <svg viewBox="0 0 700 600" xmlns="http://www.w3.org/2000/svg" class="cover-svg">
+            <defs>
+              <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="#0a0e2a"/>
+                <stop offset="60%"  stop-color="#1a3a5c"/>
+                <stop offset="100%" stop-color="#0d2b45"/>
+              </linearGradient>
+              <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="#0d2b45"/>
+                <stop offset="100%" stop-color="#040e1a"/>
+              </linearGradient>
+              <radialGradient id="moonGlow3" cx="50%" cy="50%" r="50%">
+                <stop offset="0%"   stop-color="#c8dcf5" stop-opacity="0.6"/>
+                <stop offset="100%" stop-color="#1a3a5c" stop-opacity="0"/>
+              </radialGradient>
+              <filter id="blur2"><feGaussianBlur stdDeviation="6"/></filter>
+              <filter id="blur1"><feGaussianBlur stdDeviation="2"/></filter>
+            </defs>
+            <rect width="700" height="600" fill="url(#skyGrad)"/>
+            <ellipse cx="560" cy="110" rx="90" ry="90" fill="url(#moonGlow3)" filter="url(#blur2)"/>
+            <circle cx="560" cy="110" r="48" fill="#d6eaff"/>
+            <circle cx="540" cy="100" r="44" fill="#0d2045"/>
+            <g fill="#ffffff" opacity="0.7">
+              <circle cx="40"  cy="30"  r="1.2"/><circle cx="120" cy="60"  r="0.9"/>
+              <circle cx="200" cy="20"  r="1.4"/><circle cx="290" cy="50"  r="1"/>
+              <circle cx="380" cy="15"  r="1.3"/><circle cx="450" cy="70"  r="0.8"/>
+              <circle cx="80"  cy="110" r="1"/>  <circle cx="160" cy="140" r="0.9"/>
+              <circle cx="250" cy="90"  r="1.2"/><circle cx="330" cy="130" r="0.8"/>
+              <circle cx="410" cy="45"  r="1.1"/><circle cx="490" cy="160" r="1"/>
+              <circle cx="620" cy="30"  r="1.3"/><circle cx="660" cy="80"  r="0.9"/>
+              <circle cx="680" cy="140" r="1"/>
+            </g>
+            <ellipse cx="180" cy="170" rx="130" ry="45" fill="#1c3050" opacity="0.8"/>
+            <ellipse cx="280" cy="150" rx="100" ry="40" fill="#162840" opacity="0.9"/>
+            <ellipse cx="100" cy="190" rx="90"  ry="35" fill="#1a2e4a" opacity="0.7"/>
+            <rect x="0" y="370" width="700" height="230" fill="url(#waterGrad)"/>
+            <path d="M0 380 Q87 360 175 380 Q262 400 350 380 Q437 360 525 380 Q612 400 700 380 L700 600 L0 600 Z" fill="#0a2035" opacity="0.7"/>
+            <path d="M0 410 Q87 390 175 410 Q262 430 350 410 Q437 390 525 410 Q612 430 700 410 L700 600 L0 600 Z" fill="#071828" opacity="0.6"/>
+            <ellipse cx="550" cy="430" rx="18" ry="70" fill="#c0d8f0" opacity="0.12" filter="url(#blur1)"/>
+            <g stroke="#8ab4d4" stroke-width="0.8" opacity="0.5">
+              <line x1="50"  y1="0"   x2="30"  y2="200"/><line x1="100" y1="10"  x2="80"  y2="210"/>
+              <line x1="150" y1="0"   x2="130" y2="200"/><line x1="200" y1="20"  x2="180" y2="220"/>
+              <line x1="250" y1="0"   x2="230" y2="200"/><line x1="300" y1="10"  x2="280" y2="210"/>
+              <line x1="350" y1="0"   x2="330" y2="200"/><line x1="400" y1="15"  x2="380" y2="215"/>
+              <line x1="450" y1="0"   x2="430" y2="200"/><line x1="500" y1="5"   x2="480" y2="205"/>
+              <line x1="550" y1="0"   x2="530" y2="200"/><line x1="600" y1="10"  x2="580" y2="210"/>
+              <line x1="650" y1="0"   x2="630" y2="200"/>
+              <line x1="70"  y1="200" x2="50"  y2="380"/><line x1="130" y1="210" x2="110" y2="390"/>
+              <line x1="190" y1="200" x2="170" y2="380"/><line x1="260" y1="210" x2="240" y2="390"/>
+              <line x1="320" y1="200" x2="300" y2="380"/><line x1="390" y1="215" x2="370" y2="395"/>
+              <line x1="460" y1="200" x2="440" y2="380"/><line x1="520" y1="205" x2="500" y2="385"/>
+              <line x1="580" y1="210" x2="560" y2="390"/><line x1="640" y1="200" x2="620" y2="380"/>
+            </g>
+            <path d="M240 440 Q350 480 460 440 L450 470 Q350 510 250 470 Z" fill="#3d2010"/>
+            <path d="M250 470 Q350 508 450 470 L445 478 Q350 514 255 478 Z" fill="#2a1508"/>
+            <path d="M240 440 Q350 480 460 440" stroke="#7a4422" stroke-width="3" fill="none"/>
+            <line x1="350" y1="260" x2="350" y2="445" stroke="#5c3318" stroke-width="5"/>
+            <path d="M350 270 L430 340 L350 420 Z" fill="#dce8f5" opacity="0.85"/>
+            <path d="M350 270 L280 360 L350 420 Z" fill="#b8ceea" opacity="0.6"/>
+            <ellipse cx="320" cy="460" rx="18" ry="10" fill="#1a0d05" opacity="0.85"/>
+            <path d="M312 460 Q316 430 320 420 Q324 430 328 460 Z" fill="#1a0d05"/>
+            <circle cx="320" cy="412" r="14" fill="#c8956b"/>
+            <path d="M308 410 Q290 440 296 470" stroke="#1a0506" stroke-width="8" fill="none" stroke-linecap="round"/>
+            <path d="M332 410 Q348 440 340 470" stroke="#1a0506" stroke-width="7" fill="none" stroke-linecap="round"/>
+            <path d="M315 404 Q300 390 295 375" stroke="#1a0506" stroke-width="6" fill="none" stroke-linecap="round"/>
+            <path d="M303 458 Q310 475 340 475 Q330 458 323 458 Z" fill="#3a2060"/>
+            <path d="M318 435 Q300 445 288 438" stroke="#c8956b" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <path d="M322 435 Q340 445 352 438" stroke="#c8956b" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <g stroke="#8ab4d4" stroke-width="1" opacity="0.4">
+              <ellipse cx="210" cy="460" rx="6" ry="2"/><ellipse cx="480" cy="450" rx="5" ry="2"/>
+              <ellipse cx="170" cy="490" rx="4" ry="1.5"/><ellipse cx="510" cy="480" rx="6" ry="2"/>
+              <ellipse cx="600" cy="420" rx="5" ry="2"/><ellipse cx="120" cy="430" rx="4" ry="1.5"/>
+            </g>
+            <text x="350" y="555" text-anchor="middle" font-family="Georgia, serif" font-size="38"
+                  font-weight="bold" fill="#d6eaff" letter-spacing="3"
+                  filter="url(#blur1)" opacity="0.4">ELLA TRAE LA LLUVIA</text>
+            <text x="350" y="555" text-anchor="middle" font-family="Georgia, serif" font-size="38"
+                  font-weight="bold" fill="#e8f4ff" letter-spacing="3">ELLA TRAE LA LLUVIA</text>
+          </svg>
+          <h1 class="cover-title">Ella Trae<br/>la Lluvia</h1>
+        </div>
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-btn" onclick="startPlay()">Play</button>
+        <button class="nav-btn" onclick="showCredits()">Credits</button>
+        <button class="nav-btn" onclick="showAbout()">About</button>
+      </nav>
+    </main>
+
+  </div>
+</div><!-- /#indexPage -->
+
+<!-- ════════════════════════════════════════
+     STORY PAGE
+════════════════════════════════════════ -->
+<div id="storyPage" style="display:none;">
+
+  <div class="story-layout">
+
+    <!-- Sidebar -->
+    <aside class="story-sidebar" id="storySidebar">
+      <h1 class="game-title">Ella Trae<br/>la Lluvia</h1>
+      <nav class="btn-group">
+        <button class="btn btn-play"      onclick="playMusic()">&#9654; PLAY MUSIC</button>
+        <button class="btn btn-stop"      onclick="stopMusic()">&#9646;&#9646; STOP MUSIC</button>
+        <button class="btn btn-inventory" onclick="openInventory()">&#128184; INVENTORY</button>
+        <button class="btn btn-saves"     onclick="openSaves()">&#128190; SAVES</button>
+        <button class="btn btn-restart"   onclick="confirmRestart()">&#8635; RESTART</button>
+      </nav>
+    </aside>
+
+    <!-- Sidebar toggle -->
+    <button class="sidebar-toggle" id="storyToggle" onclick="toggleStorySidebar()" aria-label="Toggle sidebar"
+            style="left:240px;">
+      <svg class="toggle-icon" id="storyToggleIcon" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+
+    <!-- Story content -->
+    <main class="story-main">
+      <div class="chapter-label" id="chapterLabel"></div>
+      <div class="story-text"    id="storyText"></div>
+      <div class="story-controls" id="storyControls"></div>
+    </main>
+
+  </div>
+</div><!-- /#storyPage -->
+
+<!-- ════════════════════════════════════════
+     MODAL (shared)
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">&#10005;</button>
+    <div class="modal-content" id="modalContent"></div>
+  </div>
+</div>
+
+<audio id="bgMusic" loop>
+  <source src="music.mp3" type="audio/mpeg"/>
+</audio>
+
+<!-- GSAP from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+<script>
+/* ════════════════════════════════════════
+   RAIN GENERATOR
+════════════════════════════════════════ */
+function generateRain() {
+  const container = document.getElementById('rainContainer');
+  if (!container) return;
+  for (let i = 0; i < 90; i++) {
+    const drop = document.createElement('div');
+    drop.className = 'raindrop';
+    const left     = Math.random() * 100;
+    const height   = 12 + Math.random() * 28;
+    const duration = 0.6 + Math.random() * 1.2;
+    const delay    = Math.random() * 3;
+    drop.style.cssText = `left:${left}%;height:${height}px;animation-duration:${duration}s;animation-delay:${delay}s;`;
+    container.appendChild(drop);
+  }
+}
+generateRain();
+
+/* ════════════════════════════════════════
+   AUDIO
+════════════════════════════════════════ */
+function playMusic() {
+  document.getElementById('bgMusic').play().catch(() => {
+    showModal('Música', '<p>Coloca un archivo <strong>music.mp3</strong> junto a este HTML.</p>');
+  });
+}
+function stopMusic() {
+  const m = document.getElementById('bgMusic');
+  m.pause(); m.currentTime = 0;
+}
+
+/* ════════════════════════════════════════
+   GAME STATE
+════════════════════════════════════════ */
+const state = {
+  chapter: 1,
+  inventory: [
+    { icon: '⛵', name: 'Bote' },
+    { icon: '🌧️', name: 'Lluvia' },
+    { icon: '🗺️', name: 'Mapa' },
+    null, null, null, null, null,
+  ],
+  saves: [
+    { slot: 1, label: 'Capítulo 1 — El mar en calma',  used: true  },
+    { slot: 2, label: 'Capítulo 1 — La tormenta llega', used: true  },
+    { slot: 3, label: 'Ranura vacía',                   used: false },
+    { slot: 4, label: 'Ranura vacía',                   used: false },
+  ]
+};
+
+/* ════════════════════════════════════════
+   MODAL
+════════════════════════════════════════ */
+function showModal(title, bodyHTML) {
+  document.getElementById('modalContent').innerHTML = `<h2>${title}</h2>${bodyHTML}`;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+/* ════════════════════════════════════════
+   INVENTORY
+════════════════════════════════════════ */
+function openInventory() {
+  let items = '';
+  state.inventory.forEach(item => {
+    items += item
+      ? `<div class="inv-slot">${item.icon}<span>${item.name}</span></div>`
+      : `<div class="inv-slot inv-empty">＋<span>Vacío</span></div>`;
+  });
+  showModal('Inventario', `<div class="inventory-grid">${items}</div>`);
+}
+
+/* ════════════════════════════════════════
+   SAVES
+════════════════════════════════════════ */
+function openSaves() {
+  let slots = '<div class="save-slots">';
+  state.saves.forEach(s => {
+    slots += `
+      <div class="save-slot">
+        <span><strong>Ranura ${s.slot}</strong><br/><small>${s.label}</small></span>
+        <div class="slot-actions">
+          ${s.used
+            ? `<button class="btn-save-load" onclick="loadSave(${s.slot})">Cargar</button>
+               <button class="btn-save-del"  onclick="deleteSave(${s.slot})">Borrar</button>`
+            : `<button class="btn-save-load" onclick="saveGame(${s.slot})">Guardar</button>`}
+        </div>
+      </div>`;
+  });
+  slots += '</div>';
+  showModal('Partidas Guardadas', slots);
+}
+function loadSave(slot) {
+  closeModal();
+  showModal('Cargando…', `<p>Cargando Ranura ${slot}…</p><p style="margin-top:8px;color:#7bb8f5;">¡Bienvenida de vuelta!</p>`);
+}
+function deleteSave(slot) {
+  const s = state.saves.find(x => x.slot === slot);
+  if (s) { s.used = false; s.label = 'Ranura vacía'; }
+  closeModal(); openSaves();
+}
+function saveGame(slot) {
+  const s = state.saves.find(x => x.slot === slot);
+  if (s) { s.used = true; s.label = `Capítulo ${state.chapter} — Guardado`; }
+  closeModal(); openSaves();
+}
+
+/* ════════════════════════════════════════
+   INDEX PAGE FUNCTIONS
+════════════════════════════════════════ */
+let mainSidebarOpen = true;
+
+function toggleMainSidebar() {
+  const sidebar = document.getElementById('mainSidebar');
+  const toggle  = document.getElementById('mainSidebarToggle');
+  const icon    = document.getElementById('mainToggleIcon');
+  mainSidebarOpen = !mainSidebarOpen;
+  sidebar.classList.toggle('collapsed', !mainSidebarOpen);
+  toggle.classList.toggle('sidebar-closed', !mainSidebarOpen);
+  icon.classList.toggle('rotated', !mainSidebarOpen);
+  gsap.to(toggle, { left: mainSidebarOpen ? 220 : 0, duration: 0.4, ease: 'power2.inOut' });
+}
+
+function restartGame() {
+  showModal('Reiniciar', `
+    <p>¿Segura que quieres reiniciar el juego desde el principio?</p>
+    <div style="display:flex;gap:12px;margin-top:20px;">
+      <button class="btn btn-stop"    style="flex:1" onclick="doRestart()">Sí, reiniciar</button>
+      <button class="btn btn-restart" style="flex:1" onclick="closeModal()">Cancelar</button>
+    </div>`);
+}
+function doRestart() {
+  state.chapter = 1;
+  closeModal();
+  showIndexPage();
+}
+
+function startPlay() {
+  gsap.to('#pageTransition', {
+    opacity: 1, duration: 0.7, ease: 'power2.in',
+    onComplete: () => {
+      document.getElementById('indexPage').style.display = 'none';
+      document.getElementById('storyPage').style.display = 'block';
+      document.body.classList.add('story-active');
+      // Small delay so display:block is painted before GSAP reads layout
+      setTimeout(() => {
+        gsap.to('#pageTransition', {
+          opacity: 0, duration: 0.9, ease: 'power2.out',
+          onComplete: () => {
+            document.getElementById('pageTransition').style.pointerEvents = 'none';
+            loadScene('arrival');
+          }
+        });
+      }, 30);
+    }
+  });
+}
+
+function showIndexPage() {
+  gsap.to('#pageTransition', {
+    opacity: 1, duration: 0.6, ease: 'power2.in',
+    onComplete: () => {
+      document.getElementById('storyPage').style.display = 'none';
+      document.getElementById('indexPage').style.display = 'block';
+      document.body.classList.remove('story-active');
+      currentSceneId = 'arrival';
+      animating      = false;
+      gsap.to('#pageTransition', { opacity: 0, duration: 0.7, ease: 'power2.out' });
+    }
+  });
+}
+
+function showCredits() {
+  showModal('Créditos', `
+    <ul>
+      <li><strong>Historia:</strong> Joel Reyes Valdez - A01288534<br>Carlitos Alfonso Benítez - A01288561<br>Joe Rokart Siliceo Garza - A01288654<br>José Angel González Contreras - A01288753</li>
+      <li><strong>Arte e Ilustración:</strong> Generado en código / Gemini</li>
+      <li><strong>Música:</strong> Por añadir (music.mp3)</li>
+      <li><strong>Desarrollo:</strong> Claude Code</li>
+    </ul>
+    <p style="margin-top:16px;color:#7bb8f5;font-size:0.85rem;">Proyecto de clase — Español</p>`);
+}
+function showAbout() {
+  showModal('Acerca del juego', `
+    <h2>Ella Trae la Lluvia</h2>
+    <p>Una novela visual interactiva sobre un grupo de criollos que arriba a una isla remota en búsqueda de una nueva vida.</p>
+    <p>Explora su historia, toma decisiones y descubre múltiples finales.</p>
+    <p style="margin-top:14px;color:#7bb8f5;font-size:0.85rem;">Versión 1.0</p>`);
+}
+
+/* ════════════════════════════════════════
+   STORY PAGE FUNCTIONS
+════════════════════════════════════════ */
+let storySidebarOpen = true;
+
+function toggleStorySidebar() {
+  const sidebar = document.getElementById('storySidebar');
+  const toggle  = document.getElementById('storyToggle');
+  const icon    = document.getElementById('storyToggleIcon');
+  storySidebarOpen = !storySidebarOpen;
+  sidebar.classList.toggle('collapsed', !storySidebarOpen);
+  toggle.classList.toggle('sidebar-closed', !storySidebarOpen);
+  icon.classList.toggle('rotated', !storySidebarOpen);
+  gsap.to(toggle, { left: storySidebarOpen ? 240 : 0, duration: 0.4, ease: 'power2.inOut' });
+}
+
+function confirmRestart() {
+  showModal('Reiniciar', `
+    <p>¿Volver al inicio del juego?</p>
+    <div style="display:flex;gap:12px;margin-top:20px;">
+      <button class="btn btn-stop"    style="flex:1" onclick="closeModal();showIndexPage()">Sí</button>
+      <button class="btn btn-restart" style="flex:1" onclick="closeModal()">Cancelar</button>
+    </div>`);
+}
+
+function goBack() {
+  showIndexPage();
+}
+
+/* ════════════════════════════════════════
+   SCENE GRAPH
+════════════════════════════════════════ */
+const scenes = {
+
+  arrival: {
+    chapter: 'Capítulo I — La Llegada',
+    lines: [
+      { text: 'Eres un criollo navegante que decide embarcarse junto a sus 3 amigos en una aventura en búsqueda de mejores oportunidades.', highlight: false },
+      { text: 'Tienen todo el equipo y los recursos necesarios para sobrevivir en una comunidad completamente nueva.', highlight: false },
+      { text: 'Es de noche. A lo lejos alcanzan a avistar una isla. Deciden aparcar ahí y comenzar una vida nueva como criollos en una isla remota.', highlight: false },
+      { text: 'A lo lejos se ve un fuego — un pueblo grande. Pero no muy lejos de ti, hay una tienda local con una luz prendida.', highlight: false },
+      { text: '¿Qué haces?', highlight: true },
+    ],
+    choices: [
+      { label: 'Explorar la tienda',        next: 'path_A' },
+      { label: 'Caminar hacia el pueblo',   next: 'path_B' },
+      { label: 'Dormir en el bote',         next: 'path_C' },
+    ]
+  },
+
+  /* ── CAMINO A ── */
+  path_A: {
+    chapter: 'Capítulo I — La Tienda Local',
+    lines: [
+      { text: 'Caminas hacia la tienda junto con tus amigos. Abres la puerta y observas la tienda casi vacía.', highlight: false },
+      { text: 'En el mostrador, ves a un hombre de edad media alta. Dice llamarse Padú.', highlight: false },
+      { text: 'Te mira con curiosidad, como si no fuera común ver caras nuevas, pero no parece hostil.', highlight: false },
+      { text: 'Afuera, la isla se siente tranquila… demasiado tranquila.', highlight: false },
+      { text: 'Tú y tus amigos se miran entre sí. Todo parece normal… por ahora.', highlight: true },
+    ],
+    choices: [
+      { label: 'Presentarte con confianza y contarle que buscan empezar de nuevo', next: 'A1' },
+      { label: 'Preguntar por comida y provisiones primero',                       next: 'A2' },
+      { label: 'Preguntar sobre la isla y cómo es la gente del pueblo',            next: 'A3' },
+    ]
+  },
+
+  A1: {
+    chapter: 'Capítulo I — Una Nueva Vida',
+    lines: [
+      { text: 'Le explicas a Padú que vienes a empezar una nueva vida. Él te escucha, serio.', highlight: false },
+      { text: '"Entonces tendrán que hablar con el pueblo", responde.', highlight: false },
+      { text: 'Al llegar, todos te observan en silencio. Un hombre da un paso al frente:', highlight: false },
+      { text: '"Aquí no aceptamos a cualquiera."', highlight: false },
+      { text: 'Sin entender por qué, pasas de esperanza a rechazo inmediato.', highlight: true },
+    ],
+    choices: [
+      { label: 'Volver al bote y dormir',  next: 'path_C' },
+      { label: 'Continuar al pueblo',      next: 'path_B' },
+      { label: 'Expresar tu incomodidad',  next: 'A1c'    },
+    ]
+  },
+
+  A1c: {
+    chapter: 'Capítulo I — Sin Bienvenida',
+    lines: [
+      { text: 'Padú, sorprendido y angustiado, decide salir de la tienda.', highlight: false },
+      { text: 'El hombre del pueblo se frustra más y más. Decide atacarte a ti y a tus amigos.', highlight: false },
+      { text: 'Logran escapar. Al volver al barco, las cosas ya no están. Han sido saqueadas.', highlight: false },
+      { text: 'Entre lo que queda del bote, alcanzas a observar una tabla de madera:', highlight: false },
+      { text: '"No volverán a traer la sequía."', highlight: true },
+    ],
+    outcome: true, outcomeType: 'neutral',
+    outcomeTitle: 'Final — No Bienvenidos',
+    outcomeText:  'Entiendes que no son bienvenidos en esta isla, y deciden irse. Hay otras islas en el horizonte.',
+    next: 'arrival'
+  },
+
+  A2: {
+    chapter: 'Capítulo I — Suministros',
+    lines: [
+      { text: 'Padú te da lo necesario. Antes de irte, pregunta: "¿Se van a quedar?"', highlight: false },
+      { text: 'Cuando respondes que sí, su expresión cambia. "Entonces tendrán que registrarse."', highlight: false },
+      { text: 'Notas que algunas personas te siguen con la mirada… y murmuran.', highlight: false },
+      { text: 'No te atacan, pero te hacen sentir que no perteneces.', highlight: true },
+    ],
+    choices: [
+      { label: 'Volver al bote y dormir',  next: 'path_C' },
+      { label: 'Continuar al pueblo',      next: 'path_B' },
+      { label: 'Expresar tu incomodidad',  next: 'A2c'    },
+    ]
+  },
+
+  A2c: {
+    chapter: 'Capítulo I — Forasteros',
+    lines: [
+      { text: 'Padú, sorprendido y angustiado, decide salir de la tienda.', highlight: false },
+      { text: 'Un hombre ajeno a tu tripulación decide atacarte a ti y a tus amigos.', highlight: false },
+      { text: 'Logran escapar. Al volver al barco, las cosas ya no están. Han sido saqueadas.', highlight: false },
+      { text: 'Entre lo que queda del bote, alcanzas a observar una tabla de madera:', highlight: false },
+      { text: '"No volverán a traer la sequía."', highlight: true },
+    ],
+    outcome: true, outcomeType: 'neutral',
+    outcomeTitle: 'Final Medio — Forasteros Registrados',
+    outcomeText:  'Consigues suministros, pero el pueblo deja claro que nunca serán uno de ellos. Deciden irse de la isla.',
+    next: 'arrival'
+  },
+
+  A3: {
+    chapter: 'Capítulo I — La Gente del Pueblo',
+    lines: [
+      { text: 'Padú mira hacia el pueblo. "La gente aquí cuida lo suyo", dice.', highlight: false },
+      { text: 'Decides ir de todos modos. Al entrar, nadie te habla. Una puerta se cierra con fuerza.', highlight: false },
+      { text: 'Empiezas a entender que "cuidar lo suyo" significa excluirte.', highlight: true },
+    ],
+    next: 'path_B'
+  },
+
+  /* ── CAMINO B ── */
+  path_B: {
+    chapter: 'Capítulo I — El Mercado',
+    lines: [
+      { text: 'Te adentras en el pueblo. El fuego que viste a lo lejos era el mercado local.', highlight: false },
+      { text: 'Ves que hay comida por donde sea. Te entra mucha hambre y te acercas a comprar en un puesto.', highlight: false },
+      { text: 'No te quieren vender. Te acercas a otro y te dan la misma respuesta.', highlight: false },
+      { text: '¿Qué vas a hacer?', highlight: true },
+    ],
+    choices: [
+      { label: 'Robarte una brocheta de pescado y regresar al bote solo', next: 'B1' },
+      { label: 'Resignarte y seguir investigando el pueblo',               next: 'B2' },
+    ]
+  },
+
+  B1: {
+    chapter: 'Capítulo I — El Robo',
+    lines: [
+      { text: 'Te robas una brocheta de pescado y corres en dirección al barco.', highlight: false },
+      { text: 'Los pueblerinos entran en pánico. Un hombre te intercepta y pronto pierdes la conciencia.', highlight: false },
+      { text: 'Al día siguiente despiertas en una celda junto a tus amigos.', highlight: false },
+      { text: 'Un guardia semi dormido cuida la puerta de tu celda.', highlight: true },
+    ],
+    choices: [
+      { label: 'Intentar robarle las llaves y huir', next: 'jail_steal_keys' },
+      { label: 'Rogarle que los libere',             next: 'jail_beg'        },
+      { label: 'Insultar al guardia',                next: 'jail_insult'     },
+    ]
+  },
+
+  B2: {
+    chapter: 'Capítulo I — El Desmayo',
+    lines: [
+      { text: 'Con el paso de las horas, tú y tus amigos se desmayan del hambre.', highlight: false },
+      { text: 'Despiertas en el sillón de una casa ajena. Percibes un olor a pescado cocinado muy bueno.', highlight: false },
+      { text: 'Tus amigos ya no están junto a ti.', highlight: true },
+    ],
+    choices: [
+      { label: 'Salir de la casa y volver a tu barco',       next: 'B2a' },
+      { label: 'Inspeccionar la cocina en busca de comida',  next: 'B2b' },
+    ]
+  },
+
+  B2a: {
+    chapter: 'Capítulo I — De Vuelta al Barco',
+    lines: [
+      { text: 'Al llegar al barco, tus amigos están sentados esperándote.', highlight: false },
+      { text: 'Te cuentan que fuiste atacado y quedaste inconsciente.', highlight: false },
+      { text: 'Trataron de ayudarte, pero un hombre joven te defendió y te llevó a un paradero que ellos desconocieron.', highlight: false },
+      { text: 'Las cosas del barco ya no están. Han sido saqueadas.', highlight: false },
+      { text: '"No volverán a traer la sequía."', highlight: true },
+    ],
+    outcome: true, outcomeType: 'neutral',
+    outcomeTitle: 'Final Medio — Sin Raíces',
+    outcomeText:  'Escaparon con vida, pero sin nada. Entienden que no son bienvenidos y deciden irse de la isla.',
+    next: 'arrival'
+  },
+
+  B2b: {
+    chapter: 'Capítulo I — Las Mojarras',
+    lines: [
+      { text: 'Encuentras una estufa con dos mojarras siendo cocidas. Se ven tan apetecibles.', highlight: false },
+      { text: 'De la puerta de la cocina aparece un hombre joven, quien te invita amablemente a comer con él.', highlight: true },
+    ],
+    choices: [
+      { label: 'Aceptar la invitación',        next: 'teo_good'   },
+      { label: 'Rechazar y volver a tu barco', next: 'teo_reject' },
+    ]
+  },
+
+  teo_good: {
+    chapter: 'Capítulo I — Teo',
+    lines: [
+      { text: 'Comes con Teo. Decide contarte que en este pueblo, hace mucho tiempo, hubo una terrible sequía que afectó a la población.', highlight: false },
+      { text: 'Los pueblerinos creían que la llegada de los criollos ahuyentaba a los peces.', highlight: false },
+      { text: 'Descubres que en esta isla no son muy bienvenidos.', highlight: false },
+      { text: 'Sin embargo, Teo está dispuesto a darte un trabajo a ti y a tus amigos, y poco a poco integrarse en la sociedad de la isla.', highlight: true },
+    ],
+    outcome: true, outcomeType: 'good',
+    outcomeTitle: 'Final Bueno — Una Nueva Oportunidad',
+    outcomeText:  'Tú y tus amigos deciden comenzar una nueva vida como pescadores en un pueblo que poco a poco los mira con menos desprecio.',
+    next: 'arrival'
+  },
+
+  teo_reject: {
+    chapter: 'Capítulo I — La Huida',
+    lines: [
+      { text: 'Al llegar a tu barco, tus amigos están sentados esperándote.', highlight: false },
+      { text: 'Las cosas del barco ya no están. Han sido saqueadas.', highlight: false },
+      { text: '"No volverán a traer la sequía."', highlight: true },
+    ],
+    outcome: true, outcomeType: 'neutral',
+    outcomeTitle: 'Final Medio — Sin Raíces',
+    outcomeText:  'Escaparon con vida, pero sin nada. Entienden que no son bienvenidos y deciden irse de la isla.',
+    next: 'arrival'
+  },
+
+  /* ── CELDA ── */
+  jail_steal_keys: {
+    chapter: 'Capítulo I — La Fuga',
+    lines: [
+      { text: 'Logras tomar las llaves con cautela.', highlight: false },
+      { text: 'Tú y tus amigos logran escapar hacia el pueblo.', highlight: true },
+    ],
+    next: 'path_B'
+  },
+
+  jail_beg: {
+    chapter: 'Capítulo I — Sin Salida',
+    lines: [
+      { text: 'El policía, ahora despierto, se niega.', highlight: false },
+      { text: 'Al no encontrar otra alternativa, tú y tus amigos quedan presos de por vida.', highlight: true },
+    ],
+    outcome: true, outcomeType: 'bad',
+    outcomeTitle: 'Final Malo — Presos de Por Vida',
+    outcomeText:  'No hay escapatoria. La isla los reclama como prisioneros para siempre.',
+    next: 'arrival'
+  },
+
+  jail_insult: {
+    chapter: 'Capítulo I — La Paliza',
+    lines: [
+      { text: 'El guardia se ve ofendido… y muy enojado.', highlight: false },
+      { text: 'Decide entrar a la celda a darles una paliza.', highlight: false },
+      { text: 'Sin embargo, logran evadirlo y huyen en dirección al barco.', highlight: false },
+      { text: 'Al llegar, las cosas ya no están. Han sido saqueadas.', highlight: false },
+      { text: '"No volverán a traer la sequía."', highlight: true },
+    ],
+    outcome: true, outcomeType: 'neutral',
+    outcomeTitle: 'Final Medio — Golpeados Pero Libres',
+    outcomeText:  'Escaparon con lo puesto. Entienden que no son bienvenidos y deciden irse de la isla.',
+    next: 'arrival'
+  },
+
+  /* ── CAMINO C ── */
+  path_C: {
+    chapter: 'Capítulo I — El Bote',
+    lines: [
+      { text: 'Deciden quedarse a dormir en el bote. Ya es demasiado tarde y tienen demasiado sueño.', highlight: false },
+      { text: 'El problema es que no saben qué les aguarda esperando y vigilando de noche.', highlight: false },
+      { text: '¿Qué harán?', highlight: true },
+    ],
+    choices: [
+      { label: 'Dormir y recuperar energías',    next: 'C1'     },
+      { label: 'Quedarse despiertos y cuidarse', next: 'C2'     },
+      { label: 'Explorar la tienda',             next: 'path_A' },
+    ]
+  },
+
+  C1: {
+    chapter: 'Capítulo I — A la Deriva',
+    lines: [
+      { text: 'Se duermen. Al despertar ya no están pisando sólido.', highlight: false },
+      { text: 'En torno a ti, mares y mares de agua sin algún horizonte plano a la vista.', highlight: false },
+      { text: 'Ves a lo lejos a un amigo todavía cercano que con pocas palabras te dice que invadieron su bote y los echaron al mar.', highlight: false },
+      { text: '¡¿Cómo fue que no se despertaron a tiempo?!', highlight: false },
+      { text: 'Vaya, tal vez descansar no fue su mejor opción.', highlight: true },
+    ],
+    outcome: true, outcomeType: 'bad',
+    outcomeTitle: 'Final Malo — A la Deriva',
+    outcomeText:  'Invadieron el bote mientras dormían y los echaron al mar. No hay tierra a la vista.',
+    next: 'arrival'
+  },
+
+  C2: {
+    chapter: 'Capítulo I — La Emboscada',
+    lines: [
+      { text: 'Deciden quedarse despiertos. Sin duda es la más segura.', highlight: false },
+      { text: 'Rápidamente caen en cuenta que esta fue la mejor opción.', highlight: false },
+      { text: 'Un grupo de habitantes se revela de entre las sombras con armas punzantes y lanza-dardos tranquilizantes.', highlight: false },
+      { text: 'Al notar sus intenciones, rápidamente se cubren con su equipo.', highlight: false },
+      { text: 'A lo lejos escuchan sus gritos: "¡Devuélvanse por donde vinieron! ¡Mugres criollos!!!"', highlight: true },
+    ],
+    choices: [
+      { label: 'Rendirse',                                           next: 'C2a' },
+      { label: 'Atacar de vuelta',                                   next: 'C2b' },
+      { label: 'Defenderse, hacer tiempo y esperar que algo suceda', next: 'C2c' },
+    ]
+  },
+
+  C2a: {
+    chapter: 'Capítulo I — Rendición',
+    lines: [
+      { text: 'Tú y tus amigos se rinden.', highlight: false },
+      { text: 'Rápidamente son atravesados por lanza-dardos tranquilizantes.', highlight: false },
+      { text: 'Al despertar ya no estás pisando sólido. Mares y mares de agua sin horizonte a la vista.', highlight: false },
+      { text: 'Has sido exiliado de la isla, sin recursos, ni una dirección exacta a la cual navegar.', highlight: true },
+    ],
+    outcome: true, outcomeType: 'bad',
+    outcomeTitle: 'Final Malo — Exiliados al Mar',
+    outcomeText:  'Los dardos tranquilizantes los vencieron. Amanecen a la deriva, sin rumbo y sin recursos.',
+    next: 'arrival'
+  },
+
+  C2b: {
+    chapter: 'Capítulo I — La Batalla',
+    lines: [
+      { text: 'Atacan de vuelta. La batalla parece estresante.', highlight: false },
+      { text: 'Después de un tiempo llega la policía de la isla.', highlight: false },
+      { text: 'Con el escándalo te llevan a ti y a tus amigos presos.', highlight: false },
+      { text: 'Al día siguiente despiertas en una celda junto a tus amigos.', highlight: false },
+      { text: 'Un guardia semi dormido cuida la puerta de tu celda.', highlight: true },
+    ],
+    choices: [
+      { label: 'Intentar robarle las llaves y huir', next: 'jail_steal_keys' },
+      { label: 'Rogarle que los libere',             next: 'jail_beg'        },
+      { label: 'Insultar al guardia',                next: 'jail_insult'     },
+    ]
+  },
+
+  C2c: {
+    chapter: 'Capítulo I — Teo Aparece',
+    lines: [
+      { text: 'Al lograr hacer tiempo, llega un hombre joven a defenderlos.', highlight: false },
+      { text: 'Los pueblerinos, indignados y con caras de asco, se marchan.', highlight: false },
+      { text: 'El hombre se presenta y dice llamarse Teo.', highlight: false },
+      { text: 'Teo les explica que hace mucho tiempo hubo una gran sequía, y la gente señalaba a los criollos como la principal causa de esta.', highlight: false },
+      { text: 'Decide ofrecerte a ti y a tus amigos un refugio y un trabajo dentro de la isla.', highlight: true },
+    ],
+    choices: [
+      { label: 'Aceptar el trabajo',                      next: 'C2c_accept' },
+      { label: 'Desconfiar y huir de la isla',            next: 'C2c_flee'   },
+      { label: 'No tomar la oferta y explorar el pueblo', next: 'path_B'     },
+    ]
+  },
+
+  C2c_accept: {
+    chapter: 'Capítulo I — Pescadores',
+    lines: [
+      { text: 'Tú y tus amigos deciden comenzar una nueva vida como pescadores.', highlight: false },
+      { text: 'El pueblo poco a poco los mira con menos desprecio, sin embargo este nunca desaparece del todo.', highlight: false },
+      { text: 'Logran su objetivo principal, aunque con algo de discriminación.', highlight: true },
+    ],
+    outcome: true, outcomeType: 'good',
+    outcomeTitle: 'Final Bueno — Raíces en la Isla',
+    outcomeText:  'Se quedan. Trabajan. Con el tiempo, algunos vecinos empiezan a aceptarlos. El camino es largo, pero han encontrado un hogar.',
+    next: 'arrival'
+  },
+
+  C2c_flee: {
+    chapter: 'Capítulo I — La Despedida',
+    lines: [
+      { text: 'Teo parece decepcionarse mientras tú y tus amigos corren rumbo a su bote.', highlight: false },
+      { text: 'Deciden marcharse, pues entienden que nunca serán bienvenidos en aquella isla.', highlight: true },
+    ],
+    outcome: true, outcomeType: 'neutral',
+    outcomeTitle: 'Final Medio — Otra Isla',
+    outcomeText:  'Escaparon con vida y con dignidad. Hay otras islas en el horizonte, y con ellas, otra oportunidad.',
+    next: 'arrival'
+  },
+};
+
+/* ════════════════════════════════════════
+   SCENE ENGINE
+════════════════════════════════════════ */
+let currentSceneId = 'arrival';
+let animating      = false;
+
+function loadScene(id) {
+  animating      = true;
+  currentSceneId = id;
+
+  const scene    = scenes[id];
+  const textBox  = document.getElementById('storyText');
+  const label    = document.getElementById('chapterLabel');
+  const controls = document.getElementById('storyControls');
+
+  // Fully reset containers — clear any GSAP inline styles
+  [label, textBox, controls].forEach(el => {
+    el.style.cssText = '';
+    el.style.opacity = '1';
+    el.style.transform = 'none';
+  });
+
+  textBox.innerHTML  = '';
+  controls.innerHTML = '';
+  label.textContent  = scene.chapter;
+  label.classList.add('line-hidden');
+
+  scene.lines.forEach(l => {
+    const p = document.createElement('p');
+    p.className   = 'story-line line-hidden' + (l.highlight ? ' highlight' : '');
+    p.textContent = l.text;
+    textBox.appendChild(p);
+  });
+
+  if (scene.choices) {
+    const back = document.createElement('button');
+    back.className   = 'story-btn story-btn-back';
+    back.textContent = '← Volver';
+    back.onclick     = goBack;
+    controls.appendChild(back);
+    scene.choices.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className   = 'story-btn story-btn-choice';
+      btn.textContent = c.label;
+      btn.onclick     = () => gotoScene(c.next);
+      controls.appendChild(btn);
+    });
+  } else if (scene.outcome) {
+    const badge = document.createElement('div');
+    badge.className = 'outcome-badge outcome-' + scene.outcomeType;
+    badge.innerHTML = `<strong>${scene.outcomeTitle}</strong><span>${scene.outcomeText}</span>`;
+    controls.appendChild(badge);
+    const btn = document.createElement('button');
+    btn.className   = 'story-btn story-btn-next';
+    btn.textContent = '↩ Explorar otra decisión';
+    btn.onclick     = () => gotoScene('arrival');
+    controls.appendChild(btn);
+  } else {
+    const back = document.createElement('button');
+    back.className   = 'story-btn story-btn-back';
+    back.textContent = '← Volver';
+    back.onclick     = goBack;
+    controls.appendChild(back);
+    const nxt = document.createElement('button');
+    nxt.className   = 'story-btn story-btn-next';
+    nxt.textContent = 'Continuar →';
+    nxt.onclick     = () => gotoScene(scene.next);
+    controls.appendChild(nxt);
+  }
+
+  controls.classList.add('line-hidden');
+
+  // Reveal: label at 200ms, then each line 1500ms apart, controls 1500ms after last line
+  const lines = [...textBox.querySelectorAll('.story-line')];
+  const INTERVAL = 1500;
+
+  function reveal(el, delay) {
+    setTimeout(() => {
+      el.classList.remove('line-hidden');
+      el.classList.add('line-visible');
+    }, delay);
+  }
+
+  reveal(label, 200);
+  lines.forEach((el, i) => reveal(el, 200 + (i + 1) * INTERVAL));
+
+  // Controls appear only after the last line's fade-in transition finishes (500ms)
+  const lastLineDelay = 200 + lines.length * INTERVAL + 500;
+  setTimeout(() => {
+    controls.classList.remove('line-hidden');
+    controls.classList.add('line-visible');
+    animating = false;
+  }, lastLineDelay);
+}
+
+function gotoScene(id) {
+  if (animating) return;
+  animating = true;
+  const els = ['#chapterLabel','#storyText','#storyControls'].map(s => document.querySelector(s));
+  gsap.to(els, {
+    opacity: 0, duration: 0.4, ease: 'power2.in', stagger: 0.05,
+    onComplete: () => {
+      els.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; });
+      loadScene(id);
+    }
+  });
+}
+
+/* ════════════════════════════════════════
+   BOOT
+════════════════════════════════════════ */
+(function boot() {
+  // Fade in the index page on load
+  gsap.to('#pageTransition', {
+    opacity: 0, duration: 0.9, ease: 'power2.out',
+    onComplete: () => {
+      document.getElementById('pageTransition').style.pointerEvents = 'none';
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
