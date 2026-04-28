@@ -203,6 +203,26 @@ body { overflow-y: auto; }
   color: #f0a8a8;
 }
 
+/* ── Scene image frame ── */
+.scene-image-frame {
+  width: 100%;
+  max-width: 680px;
+  margin-bottom: 40px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(100, 160, 230, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 40, 100, 0.5), 0 0 0 1px rgba(80, 140, 220, 0.1);
+}
+
+.scene-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  max-height: 340px;
+  filter: brightness(0.88) saturate(0.85);
+}
+
 /* ── Page transition overlay ── */
 #pageTransition {
   position: fixed;

@@ -6,6 +6,7 @@ const scenes = {
   ════════════════════════════════════════ */
   arrival: {
     chapter: 'Capítulo I — La Llegada',
+    image: 'Images/A lo lejos ves un humo y un mercado a lado.jpeg',
     lines: [
       { text: 'Eres un criollo navegante que decide embarcarse junto a sus 3 amigos en una aventura en búsqueda de mejores oportunidades.', highlight: false },
       { text: 'Tienen todo el equipo y los recursos necesarios para sobrevivir en una comunidad completamente nueva.', highlight: false },
@@ -25,6 +26,7 @@ const scenes = {
   ════════════════════════════════════════ */
   path_A: {
     chapter: 'Capítulo I — La Tienda Local',
+    image: 'Images/Tienda de Padu.jpeg',
     lines: [
       { text: 'Caminas hacia la tienda junto con tus amigos. Abres la puerta y observas la tienda casi vacía.', highlight: false },
       { text: 'En el mostrador, ves a un hombre de edad media alta. Dice llamarse Padú.', highlight: false },
@@ -120,6 +122,7 @@ const scenes = {
   ════════════════════════════════════════ */
   path_B: {
     chapter: 'Capítulo I — El Mercado',
+    image: 'Images/Mercado (1).jpeg',
     lines: [
       { text: 'Te adentras en el pueblo. El fuego que viste a lo lejos era el mercado local.', highlight: false },
       { text: 'Ves que hay comida por donde sea. Te entra mucha hambre y te acercas a comprar en un puesto.', highlight: false },
@@ -135,6 +138,7 @@ const scenes = {
   /* ── B1 — El Robo ── */
   B1: {
     chapter: 'Capítulo I — El Robo',
+    image: 'Images/Prision.jpeg',
     lines: [
       { text: 'Te robas una brocheta de pescado y corres en dirección al barco.', highlight: false },
       { text: 'Los pueblerinos entran en pánico. Un hombre te intercepta y pronto pierdes la conciencia.', highlight: false },
@@ -151,6 +155,7 @@ const scenes = {
   /* ── B2 — La Cantina / Casa de Teo ── */
   B2: {
     chapter: 'Capítulo I — El Desmayo',
+    image: 'Images/Te ofrecen trabajo.jpeg',
     lines: [
       { text: 'Con el paso de las horas, tú y tus amigos se desmayan del hambre.', highlight: false },
       { text: 'Despiertas en el sillón de una casa ajena. Percibes un olor a pescado cocinado muy bueno.', highlight: false },
@@ -164,6 +169,7 @@ const scenes = {
 
   B2a: {
     chapter: 'Capítulo I — De Vuelta al Barco',
+    image: 'Images/Bote dormir.jpeg',
     lines: [
       { text: 'Al llegar al barco, tus amigos están sentados esperándote.', highlight: false },
       { text: 'Te cuentan que fuiste atacado y quedaste inconsciente.', highlight: false },
@@ -192,6 +198,7 @@ const scenes = {
 
   teo_good: {
     chapter: 'Capítulo I — Teo',
+    image: 'Images/Trabajas de pescador.jpeg',
     lines: [
       { text: 'Comes con Teo. Decide contarte que en este pueblo, hace mucho tiempo, hubo una terrible sequía que afectó a la población.', highlight: false },
       { text: 'Los pueblerinos creían que la llegada de los criollos ahuyentaba a los peces.', highlight: false },
@@ -267,6 +274,7 @@ const scenes = {
   ════════════════════════════════════════ */
   path_C: {
     chapter: 'Capítulo I — El Bote',
+    image: 'Images/Bote dormir.jpeg',
     lines: [
       { text: 'Deciden quedarse a dormir en el bote. Ya es demasiado tarde y tienen demasiado sueño.', highlight: false },
       { text: 'El problema es que no saben qué les aguarda esperando y vigilando de noche.', highlight: false },
@@ -435,6 +443,21 @@ function loadScene(id, firstLoad = false) {
     p.textContent = l.text;
     textBox.appendChild(p);
   });
+
+  /* Scene image frame */
+  const existingFrame = document.getElementById('sceneImageFrame');
+  if (existingFrame) existingFrame.remove();
+  if (scene.image) {
+    const frame = document.createElement('div');
+    frame.id = 'sceneImageFrame';
+    frame.className = 'scene-image-frame';
+    const img = document.createElement('img');
+    img.src = scene.image;
+    img.alt = '';
+    img.className = 'scene-image';
+    frame.appendChild(img);
+    textBox.parentNode.insertBefore(frame, textBox);
+  }
 
   /* Build controls */
   controls.innerHTML = '';
